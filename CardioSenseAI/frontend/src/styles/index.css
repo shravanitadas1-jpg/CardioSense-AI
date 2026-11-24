@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-void text-ink-primary font-body antialiased;
+  background-image: radial-gradient(circle at 50% -10%, rgba(34,211,238,0.10), transparent 55%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #16232E;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #22D3EE55;
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(15,24,34,0.72), rgba(9,14,20,0.72));
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.grid-backdrop {
+  background-image:
+    linear-gradient(rgba(34,211,238,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+}
+
+.text-glow {
+  text-shadow: 0 0 24px rgba(34,211,238,0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

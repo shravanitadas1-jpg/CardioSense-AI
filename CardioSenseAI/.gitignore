@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+*.db
+*.sqlite
+*.sqlite3
+data/
+readings.json
+history.json
+!.env.example
+.vscode/

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pyserial
+python-dotenv
+websockets
+pydantic
+paho-mqtt

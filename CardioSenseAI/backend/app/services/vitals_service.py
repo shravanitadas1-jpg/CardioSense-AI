@@ -1,0 +1,84 @@
+from typing import Dict, List
+
+from app.models.vitals import SaveReadingRequest
+from app.mqtt.mqtt_reader import mqtt_reader
+from app.storage.json_storage import append_reading, read_analytics, read_readings, write_analytics
+from app.utils.helpers import classify_ces, now_date_str, now_time_str, recovery_to_score, safe_avg
+
+
+def get_live_vitals() -> Dict:
+    return mqtt_reader.get_latest()
+
+
+def get_history() -> List[Dict]:
+    return read_readings()
+
+
+def save_reading(payload: SaveReadingRequest) -> Dict:
+    readings = read_readings()
+    next_id = (max((r.get("id", 0) for r in readings), default=0)) + 1
+
+    ces_value = payload.ces if payload.ces is not None else 0
+    recovery_label = payload.recovery or "Moderate"
+
+    reading = {
+        "id": next_id,
+        "date": now_date_str(),
+        "time": now_time_str(),
+        "heartRate": payload.heartRate,
+        "spo2": payload.spo2,
+        "temperature": payload.temperature,
+        "cardiacAge": payload.cardiacAge or 0,
+        "ces": ces_value,
+        "recovery": recovery_label,
+    }
+
+    saved = append_reading(reading)
+    _recalculate_analytics()
+    return saved
+
+
+def get_analytics() -> Dict:
+    analytics = read_analytics()
+    if not analytics:
+        analytics = _recalculate_analytics()
+    return analytics
+
+
+def _recalculate_analytics() -> Dict:
+    readings = read_readings()
+
+    avg_hr = safe_avg([r.get("heartRate") for r in readings], default=72)
+    avg_spo2 = safe_avg([r.get("spo2") for r in readings], default=97)
+    avg_ces = int(safe_avg([r.get("ces") for r in readings], default=75))
+    avg_cardiac_age = int(safe_avg([r.get("cardiacAge") for r in readings], default=25))
+    avg_recovery = int(
+        safe_avg([recovery_to_score(r.get("recovery", "Moderate")) for r in readings], default=70)
+    )
+
+    hr_efficiency = max(0, 100 - abs(avg_hr - 65))
+    ecg_stability = min(100, int(80 + (avg_spo2 - 95)))
+    spo2_stability = min(100, int(avg_spo2))
+    hrv_score = min(100, int((avg_recovery + hr_efficiency) / 2))
+    activity_balance = min(100, int((avg_recovery + avg_ces) / 2))
+    stress_score = max(0, 100 - avg_recovery)
+
+    analytics = {
+        "cardiacAge": avg_cardiac_age,
+        "ces": avg_ces,
+        "stress": int(stress_score),
+        "recovery": avg_recovery,
+        "ecgStability": int(clamp_percent(ecg_stability)),
+        "hrv": int(clamp_percent(hrv_score)),
+        "spo2Stability": int(clamp_percent(spo2_stability)),
+        "activityBalance": int(clamp_percent(activity_balance)),
+        "classification": classify_ces(avg_ces),
+        "sampleSize": len(readings),
+    }
+
+    write_analytics(analytics)
+    return analytics
+
+
+def clamp_percent(value: float) -> float:
+    return max(0.0, min(100.0, value))
